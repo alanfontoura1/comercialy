@@ -107,7 +107,21 @@ CREATE TABLE IF NOT EXISTS mensagens (
   clinica_id  UUID REFERENCES clinicas(id),
   conteudo    TEXT NOT NULL,
   tipo        VARCHAR(20) DEFAULT 'recebida' CHECK (tipo IN ('enviada','recebida','sistema')),
+  media_type  VARCHAR(50),
+  media_url   TEXT,
   created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ─── Análise de Conversas ─────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS conversation_analysis (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  lead_id           UUID REFERENCES leads(id) ON DELETE CASCADE,
+  clinica_id        UUID REFERENCES clinicas(id),
+  score             INTEGER,
+  resumo            TEXT,
+  pontos_positivos  JSONB DEFAULT '[]',
+  pontos_melhoria   JSONB DEFAULT '[]',
+  created_at        TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ─── Agendamentos ─────────────────────────────────────────────────────────────

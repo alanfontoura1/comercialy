@@ -35,7 +35,7 @@ const STATUS_COLORS: Record<LeadStatus, string> = {
 
 const ALL_STATUSES: LeadStatus[] = ['novo', 'qualificacao', 'qualificado', 'agendado', 'convertido', 'followup', 'nutricao', 'arquivado'];
 
-interface Msg { id: string; conteudo: string; tipo: 'enviada' | 'recebida' | 'sistema'; created_at: string; }
+interface Msg { id: string; conteudo: string; tipo: 'enviada' | 'recebida' | 'sistema'; created_at: string; media_type?: string; media_url?: string; }
 
 interface Analysis {
   score: number | null;
@@ -193,6 +193,8 @@ export default function ConversasPage() {
   const [showMoveDropdown, setShowMoveDropdown] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editFields, setEditFields] = useState({ nome: '', email: '', telefone: '' });
+  const [msgInput, setMsgInput] = useState('');
+  const msgInputRef = useRef<HTMLInputElement>(null);
 
   // Load leads from API
   const { data: leadsData } = useQuery<{ data: Lead[] }>({
@@ -279,6 +281,19 @@ export default function ConversasPage() {
       toast.success(paused ? 'IA pausada para este lead' : 'IA reativada');
     },
   });
+
+  const sendMutation = useMutation({
+    mutationFn: (conteudo: string) =>
+      api.post(`/leads/${selectedId}/mensagens`, { conteudo, tipo: 'enviada', clinica_id: clinicaId, send_whatsapp: true }),
+    onSuccess: () => { setMsgInput(''); refetchMsgs(); },
+    onError: () => toast.error('Erro ao enviar mensagem'),
+  });
+
+  function handleSend() {
+    const text = msgInput.trim();
+    if (!text || !selectedId || sendMutation.isPending) return;
+    sendMutation.mutate(text);
+  }
 
   function handleSaveEdit() {
     updateMutation.mutate(editFields);
@@ -388,7 +403,16 @@ export default function ConversasPage() {
                   )}
                   style={msg.tipo === 'enviada' ? { background: '#8b5cf6' } : undefined}
                 >
-                  <p className="leading-relaxed whitespace-pre-wrap">{msg.conteudo}</p>
+                  {(msg.media_type === 'image' || msg.media_type === 'sticker') && msg.media_url && (
+                    <img src={msg.media_url} alt="mídia" className="rounded-lg mb-1" style={{ maxWidth: msg.media_type === 'sticker' ? '120px' : '220px' }} />
+                  )}
+                  {msg.media_type === 'audio' && msg.media_url && (
+                    <audio controls src={msg.media_url} className="mb-1" style={{ maxWidth: '220px' }} />
+                  )}
+                  {msg.media_type === 'video' && msg.media_url && (
+                    <video controls src={msg.media_url} className="rounded-lg mb-1" style={{ maxWidth: '220px' }} />
+                  )}
+                  {msg.conteudo && <p className="leading-relaxed whitespace-pre-wrap">{msg.conteudo}</p>}
                   <p className={clsx('text-xs mt-1', msg.tipo === 'enviada' ? 'text-white/50' : 'text-white/30')}>
                     {new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </p>
@@ -400,20 +424,35 @@ export default function ConversasPage() {
 
           {/* Input area */}
           <div className="px-6 py-4 border-t border-white/[0.06]">
-            {iaPausada && (
-              <p className="text-xs text-amber-400/70 mb-2 text-center">
-                IA pausada — monitore ou responda manualmente abaixo
+            {!iaPausada && (
+              <p className="text-xs text-white/30 mb-2 text-center">
+                IA ativa — pause a IA para responder manualmente
               </p>
             )}
-            <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5">
+            <div className={clsx(
+              'flex items-center gap-2 border rounded-xl px-4 py-2.5',
+              iaPausada ? 'bg-white/[0.04] border-white/[0.08]' : 'bg-white/[0.02] border-white/[0.04]'
+            )}>
               <input
+                ref={msgInputRef}
                 type="text"
-                placeholder={iaPausada ? 'Resposta manual (em breve)...' : 'IA respondendo automaticamente...'}
-                className="flex-1 bg-transparent text-sm text-white/70 placeholder-white/25 focus:outline-none"
-                readOnly
+                value={msgInput}
+                onChange={e => setMsgInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder={iaPausada ? 'Digite uma mensagem...' : 'IA respondendo automaticamente...'}
+                disabled={!iaPausada}
+                className="flex-1 bg-transparent text-sm text-white/70 placeholder-white/25 focus:outline-none disabled:opacity-30"
               />
-              <button className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors text-white opacity-40 cursor-not-allowed" style={{ background: '#8b5cf6' }}>
-                Enviar
+              <button
+                onClick={handleSend}
+                disabled={!iaPausada || !msgInput.trim() || sendMutation.isPending}
+                className={clsx(
+                  'text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors text-white',
+                  iaPausada && msgInput.trim() ? 'opacity-100 hover:opacity-90' : 'opacity-30 cursor-not-allowed'
+                )}
+                style={{ background: '#8b5cf6' }}
+              >
+                {sendMutation.isPending ? '...' : 'Enviar'}
               </button>
             </div>
           </div>

@@ -641,12 +641,40 @@ async function startClinicaInstance(clinicaId) {
       if (!remoteJid || remoteJid.includes('@g.us') || remoteJid.includes('@broadcast')) continue;
 
       const phone = remoteJid.replace(/@[^@]+$/, '');
+      const msgContent = msg.message;
       const text =
-        msg.message?.conversation ||
-        msg.message?.extendedTextMessage?.text ||
-        msg.message?.imageMessage?.caption;
+        msgContent?.conversation ||
+        msgContent?.extendedTextMessage?.text ||
+        msgContent?.imageMessage?.caption;
 
-      if (!phone || !text) continue;
+      const mediaType = msgContent?.imageMessage ? 'image'
+        : msgContent?.audioMessage ? 'audio'
+        : msgContent?.stickerMessage ? 'sticker'
+        : msgContent?.videoMessage ? 'video'
+        : msgContent?.documentMessage ? 'document'
+        : null;
+
+      if (!phone) continue;
+
+      // Media message without text caption — save placeholder and skip AI
+      if (mediaType && !text) {
+        const labels = { image: '[Imagem]', audio: '[Áudio]', sticker: '[Figurinha]', video: '[Vídeo]', document: '[Documento]' };
+        try {
+          const { rows: [lead] } = await pool.query(
+            `SELECT id, clinica_id FROM leads WHERE telefone = $1 AND clinica_id = $2 LIMIT 1`,
+            [phone, clinicaId]
+          );
+          if (lead) {
+            await pool.query(
+              `INSERT INTO mensagens (lead_id, clinica_id, conteudo, tipo, media_type) VALUES ($1,$2,$3,'recebida',$4)`,
+              [lead.id, lead.clinica_id, labels[mediaType] || '[Mídia]', mediaType]
+            );
+          }
+        } catch (e) { console.warn(`[Baileys:${clinicaId}] Erro ao salvar mídia:`, e.message); }
+        continue;
+      }
+
+      if (!text) continue;
       console.log(`[Baileys:${clinicaId}] ← ${phone}: ${text.slice(0, 80)}`);
 
       try {
@@ -717,4 +745,14 @@ async function reconnect(clinicaId) {
   await startClinicaInstance(cId);
 }
 
-module.exports = { startBaileys, startByToken, getStatus, getStatusByToken, disconnect, reconnect, createDoctorGroup, sendGroupMessage, processIncomingMessage };
+async function sendDirectMessage(clinicaId, telefone, text) {
+  const inst = instances.get(clinicaId);
+  if (!inst?.sock || inst.status !== 'connected') throw new Error('WhatsApp não conectado');
+  let number = String(telefone).replace(/\D/g, '');
+  if (!number.startsWith('55')) number = '55' + number;
+  const remoteJid = number + '@s.whatsapp.net';
+  await inst.sock.sendMessage(remoteJid, { text });
+  console.log(`[Baileys:${clinicaId}] → ${number}: ${text.slice(0, 60)}`);
+}
+
+module.exports = { startBaileys, startByToken, getStatus, getStatusByToken, disconnect, reconnect, createDoctorGroup, sendGroupMessage, processIncomingMessage, sendDirectMessage };

@@ -196,11 +196,11 @@ async function getMensagens(req, res, next) {
 async function addMensagem(req, res, next) {
   try {
     const { id } = req.params;
-    const { conteudo, tipo = 'enviada', clinica_id } = req.body;
+    const { conteudo, tipo = 'enviada', clinica_id, send_whatsapp = false } = req.body;
 
     if (!conteudo) return res.status(400).json({ error: 'conteudo e obrigatorio' });
 
-    const { rows: [lead] } = await pool.query(`SELECT clinica_id FROM leads WHERE id = $1`, [id]);
+    const { rows: [lead] } = await pool.query(`SELECT id, clinica_id, telefone FROM leads WHERE id = $1`, [id]);
     if (!lead) return res.status(404).json({ error: 'Lead nao encontrado' });
 
     const { rows: [msg] } = await pool.query(
@@ -209,6 +209,31 @@ async function addMensagem(req, res, next) {
     );
 
     await pool.query(`UPDATE leads SET updated_at = NOW() WHERE id = $1`, [id]);
+
+    // Send to WhatsApp when requested
+    if (send_whatsapp && tipo === 'enviada' && lead.telefone) {
+      try {
+        const { sendDirectMessage } = require('../services/baileys.service');
+        await sendDirectMessage(lead.clinica_id, lead.telefone, conteudo);
+      } catch (e) {
+        console.warn('[Manual Send] Baileys falhou, tentando Evolution:', e.message);
+        try {
+          const { EVOLUTION_API_URL } = require('../config/env');
+          if (EVOLUTION_API_URL) {
+            const { sendText } = require('../services/evolution.service');
+            const { rows: [clinica] } = await pool.query(
+              `SELECT instance_name, whatsapp_instance FROM clinicas WHERE id = $1`, [lead.clinica_id]
+            );
+            const instanceName = clinica?.instance_name || clinica?.whatsapp_instance;
+            if (instanceName) {
+              let number = String(lead.telefone).replace(/\D/g, '');
+              if (!number.startsWith('55')) number = '55' + number;
+              await sendText(instanceName, number + '@s.whatsapp.net', conteudo);
+            }
+          }
+        } catch (e2) { console.warn('[Manual Send] Evolution também falhou:', e2.message); }
+      }
+    }
 
     res.status(201).json(msg);
   } catch (err) { next(err); }
