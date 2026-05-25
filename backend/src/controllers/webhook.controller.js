@@ -12,17 +12,18 @@ async function handleEvolution(req, res) {
     // Only process incoming text messages
     if (event.event !== 'messages.upsert') return;
 
-    const msg = event.data?.message;
-    if (!msg || msg.key?.fromMe) return;
+    // Evolution API v2: key is at event.data level, message content inside event.data.message
+    const data = event.data;
+    if (!data || data.key?.fromMe) return;
 
-    const remoteJid = msg.key.remoteJid;
+    const remoteJid = data.key?.remoteJid;
     if (!remoteJid || remoteJid.includes('@g.us') || remoteJid.includes('@broadcast')) return;
 
     const phone = remoteJid.replace(/@[^@]+$/, '');
     const text =
-      msg.message?.conversation ||
-      msg.message?.extendedTextMessage?.text ||
-      msg.message?.imageMessage?.caption;
+      data.message?.conversation ||
+      data.message?.extendedTextMessage?.text ||
+      data.message?.imageMessage?.caption;
 
     if (!phone || !text) return;
 

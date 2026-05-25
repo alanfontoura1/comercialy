@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS clinicas (
   whatsapp_instance     VARCHAR(255),
   instance_name         VARCHAR(255),
   grupo_notificacao     VARCHAR(255),
+  endereco              TEXT,
+  ia_ativa              BOOLEAN DEFAULT true,
   created_at            TIMESTAMPTZ DEFAULT NOW(),
   updated_at            TIMESTAMPTZ DEFAULT NOW()
 );
