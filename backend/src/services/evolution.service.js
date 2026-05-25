@@ -1,7 +1,7 @@
 const { EVOLUTION_API_URL, EVOLUTION_API_KEY } = require('../config/env');
 
 async function request(method, path, body) {
-  const res = await fetch(`${EVOLUTION_API_URL}${path}`, {
+  const res = await fetch(`${EVOLUTION_API_URL}${path.replace(/ /g, '%20')}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
