@@ -717,4 +717,4 @@ async function reconnect(clinicaId) {
   await startClinicaInstance(cId);
 }
 
-module.exports = { startBaileys, startByToken, getStatus, getStatusByToken, disconnect, reconnect, createDoctorGroup, sendGroupMessage };
+module.exports = { startBaileys, startByToken, getStatus, getStatusByToken, disconnect, reconnect, createDoctorGroup, sendGroupMessage, processIncomingMessage };
