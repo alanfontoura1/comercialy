@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS leads (
   follow_up_count         INTEGER DEFAULT 0,
   ultimo_followup         TIMESTAMPTZ,
   bloqueado               BOOLEAN DEFAULT false,
+  ia_pausada              BOOLEAN DEFAULT false,
   metadados               JSONB DEFAULT '{}',
   created_at              TIMESTAMPTZ DEFAULT NOW(),
   updated_at              TIMESTAMPTZ DEFAULT NOW(),
