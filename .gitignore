@@ -1,0 +1,18 @@
+node_modules/
+.env
+dist/
+build/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+coverage/
+
+# WhatsApp session - NUNCA commitar (contém credenciais de sessão)
+baileys_auth/
+
+# Uploads temporários
+uploads/
+
+# Env examples são commitados, mas não os .env reais
+!.env.example

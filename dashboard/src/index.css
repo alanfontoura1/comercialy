@@ -1,0 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body { background: #07060f; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+}
+
+@layer utilities {
+  .font-display { font-family: 'Space Grotesk', sans-serif; }
+  .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 12px; }
+  .glow-bg { background-image: radial-gradient(ellipse 600px 400px at 50% -100px, rgba(139,92,246,0.15), transparent); }
+  .sidebar-bg { background: rgba(255,255,255,0.02); border-right: 1px solid rgba(255,255,255,0.06); }
+}
