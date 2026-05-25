@@ -13,7 +13,7 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/src/database/migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./backend/src/database/migrations/schema_v2.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
@@ -30,43 +30,26 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      NODE_ENV: ${NODE_ENV}
+      NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      AI_PROVIDER: ${AI_PROVIDER:-groq}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       EVOLUTION_API_URL: ${EVOLUTION_API_URL}
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI}
-      FRONTEND_URL: ${FRONTEND_URL}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:-primary}
+      NOTIFICATION_GROUP_JID: ${NOTIFICATION_GROUP_JID:-}
+      FRONTEND_URL: ${FRONTEND_URL}
+      BAILEYS_CLINICA_ID: ${BAILEYS_CLINICA_ID:-}
     ports:
       - '3001:3001'
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    command: npm run dev
-
-  dashboard:
-    build:
-      context: ./dashboard
-      dockerfile: Dockerfile
-    container_name: comercialy_dashboard
-    restart: unless-stopped
-    depends_on:
-      - backend
-    environment:
-      VITE_API_URL: ${VITE_API_URL}
-      VITE_WS_URL: ${VITE_WS_URL}
-    ports:
-      - '3000:3000'
-    volumes:
-      - ./dashboard:/app
-      - /app/node_modules
-    command: npm run dev -- --host 0.0.0.0 --port 3000
 
 volumes:
   postgres_data:

@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS clinicas (
   follow_up_noite       TIME DEFAULT '19:00',
   webhook_url           TEXT,
   whatsapp_instance     VARCHAR(255),
+  instance_name         VARCHAR(255),
   grupo_notificacao     VARCHAR(255),
   created_at            TIMESTAMPTZ DEFAULT NOW(),
   updated_at            TIMESTAMPTZ DEFAULT NOW()
@@ -113,13 +114,18 @@ CREATE TABLE IF NOT EXISTS agendamentos (
   lead_id           UUID REFERENCES leads(id) ON DELETE CASCADE,
   clinica_id        UUID REFERENCES clinicas(id),
   procedimento_id   UUID REFERENCES procedimentos(id),
+  nome_paciente     VARCHAR(255),
+  tipo              VARCHAR(50) DEFAULT 'normal',
+  observacoes       TEXT,
   data              DATE NOT NULL,
   horario           TIME NOT NULL,
   duracao_minutos   INTEGER DEFAULT 60,
+  status            VARCHAR(50) DEFAULT 'agendado',
   google_event_id   VARCHAR(255),
   consulta_paga     BOOLEAN DEFAULT false,
   comprovante_url   TEXT,
-  created_at        TIMESTAMPTZ DEFAULT NOW()
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ─── Indexes ──────────────────────────────────────────────────────────────────
@@ -136,7 +142,7 @@ $$ LANGUAGE plpgsql;
 
 DO $$ DECLARE t TEXT;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['clinicas','leads']
+  FOREACH t IN ARRAY ARRAY['clinicas','leads','agendamentos']
   LOOP
     EXECUTE format(
       'DROP TRIGGER IF EXISTS trg_updated_at ON %I; CREATE TRIGGER trg_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION update_updated_at();',

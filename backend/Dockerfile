@@ -5,11 +5,11 @@ WORKDIR /app
 RUN apk add --no-cache dumb-init
 
 COPY package*.json ./
-RUN npm ci --only=production && npm install nodemon
+RUN npm ci --only=production
 
 COPY . .
 
 EXPOSE 3001
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["npm", "run", "dev"]
+CMD ["node", "src/server.js"]
