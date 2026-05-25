@@ -51,7 +51,7 @@ async function handleEvolution(req, res) {
 
     console.log(`[Webhook:Evolution] Processado: ${phone} → ${result?.replies?.length ?? 0} respostas`);
   } catch (err) {
-    console.error('[Webhook:Evolution] Erro:', err.message);
+    console.error('[Webhook:Evolution] Erro:', err.message, err.data ?? '');
   }
 }
 

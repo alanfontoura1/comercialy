@@ -28,8 +28,9 @@ async function getQRCode(instanceName) {
 }
 
 async function sendText(instanceName, to, text) {
+  const number = to.replace(/@[^@]+$/, ''); // strip JID suffix (@s.whatsapp.net, @g.us, etc.)
   return request('POST', `/message/sendText/${instanceName}`, {
-    number: to,
+    number,
     text,
   });
 }
