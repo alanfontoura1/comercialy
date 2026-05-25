@@ -210,28 +210,26 @@ async function addMensagem(req, res, next) {
 
     await pool.query(`UPDATE leads SET updated_at = NOW() WHERE id = $1`, [id]);
 
-    // Send to WhatsApp when requested
+    // Send to WhatsApp via Evolution API
     if (send_whatsapp && tipo === 'enviada' && lead.telefone) {
       try {
-        const { sendDirectMessage } = require('../services/baileys.service');
-        await sendDirectMessage(lead.clinica_id, lead.telefone, conteudo);
-      } catch (e) {
-        console.warn('[Manual Send] Baileys falhou, tentando Evolution:', e.message);
-        try {
-          const { EVOLUTION_API_URL } = require('../config/env');
-          if (EVOLUTION_API_URL) {
-            const { sendText } = require('../services/evolution.service');
-            const { rows: [clinica] } = await pool.query(
-              `SELECT instance_name, whatsapp_instance FROM clinicas WHERE id = $1`, [lead.clinica_id]
-            );
-            const instanceName = clinica?.instance_name || clinica?.whatsapp_instance;
-            if (instanceName) {
-              let number = String(lead.telefone).replace(/\D/g, '');
-              if (!number.startsWith('55')) number = '55' + number;
-              await sendText(instanceName, number + '@s.whatsapp.net', conteudo);
-            }
+        const { EVOLUTION_API_URL } = require('../config/env');
+        if (EVOLUTION_API_URL) {
+          const { sendText } = require('../services/evolution.service');
+          const { rows: [clinica] } = await pool.query(
+            `SELECT instance_name, whatsapp_instance FROM clinicas WHERE id = $1`, [lead.clinica_id]
+          );
+          const instanceName = clinica?.instance_name || clinica?.whatsapp_instance;
+          if (instanceName) {
+            const number = String(lead.telefone).replace(/\D/g, '');
+            await sendText(instanceName, number, conteudo);
           }
-        } catch (e2) { console.warn('[Manual Send] Evolution também falhou:', e2.message); }
+        } else {
+          const { sendDirectMessage } = require('../services/baileys.service');
+          await sendDirectMessage(lead.clinica_id, lead.telefone, conteudo);
+        }
+      } catch (e) {
+        console.warn('[Manual Send] Falha ao enviar WhatsApp:', e.message);
       }
     }
 
